@@ -1,0 +1,4 @@
+2019-08-07 14:36:34,176 - add_account - INFO - 创建地址 03
+2019-08-07 14:36:34,177 - subcommand - INFO - 执行命令 echo a11111111|/home/wind/Hashgard/hashgardcli keys add 03
+2019-08-07 14:36:34,209 - subcommand - INFO - 'utf-8' codec can't decode byte 0xd5 in position 4: invalid continuation byte
+2019-08-07 14:36:34,209 - add_account - INFO - the JSON object must be str, bytes or bytearray, not NoneType

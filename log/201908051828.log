@@ -1,0 +1,14 @@
+2019-08-05 18:28:05,699 - check_local - INFO - 更新本地版本至最新
+2019-08-05 18:28:05,724 - _log - INFO - Connected (version 2.0, client OpenSSH_7.4)
+2019-08-05 18:28:05,801 - _log - INFO - Authentication (publickey) successful!
+2019-08-05 18:28:05,886 - _log - INFO - [chan 0] Opened sftp connection (server version 3)
+2019-08-05 18:28:05,886 - _connect - INFO - SSH 连接到服务器：172.16.6.11,端口为：22,用户名为：root
+2019-08-05 18:28:05,894 - exec_command - INFO - 输入命令： cd /root/go/bin/;md5sum hashgard
+2019-08-05 18:28:06,031 - exec_command - INFO - 返回结果：
+54f3b9104230a6ee4d092b1f1d15d2fb  hashgard
+2019-08-05 18:28:06,091 - exec_command - INFO - 输入命令： cd /root/go/bin/;md5sum hashgardcli
+2019-08-05 18:28:06,229 - exec_command - INFO - 返回结果：
+224fa4e73b3310db6a889fdabae639ba  hashgardcli
+2019-08-05 18:28:06,277 - exec_command - INFO - 输入命令： cd /root/go/bin/;md5sum hashgardlcd
+2019-08-05 18:28:06,395 - exec_command - INFO - 返回结果：
+f71fc57a60504bc5eb08b634d1a7e579  hashgardlcd

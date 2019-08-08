@@ -1,0 +1,31 @@
+2019-08-06 18:56:32,355 - _log - INFO - Connected (version 2.0, client OpenSSH_7.4)
+2019-08-06 18:56:32,435 - _log - INFO - Authentication (publickey) successful!
+2019-08-06 18:56:32,514 - _log - INFO - [chan 0] Opened sftp connection (server version 3)
+2019-08-06 18:56:32,514 - _connect - INFO - SSH 连接到服务器：172.16.6.11,端口为：22,用户名为：root
+2019-08-06 18:56:32,522 - exec_command - INFO - 输入命令： /root/go/bin/hashgard version
+2019-08-06 18:56:32,632 - exec_command - INFO - 返回结果：
+hashgard: 0.7.0-5-gc92b83a
+2019-08-06 18:56:32,681 - exec_command - INFO - 输入命令： cd /root/go/src/github.com/hashgard/hashgard;git status
+2019-08-06 18:56:32,709 - exec_command - INFO - 返回结果：
+# 位于分支 master
+无文件要提交，干净的工作区
+2019-08-06 18:56:32,763 - exec_command - INFO - 输入命令： cd /root/go/src/github.com/hashgard/hashgard;pwd
+2019-08-06 18:56:32,780 - exec_command - INFO - 返回结果：
+/root/go/src/github.com/hashgard/hashgard
+2019-08-06 18:56:32,832 - exec_command - INFO - 输入命令： cd /root/go/bin/;md5sum hashgard
+2019-08-06 18:56:32,938 - exec_command - INFO - 返回结果：
+54f3b9104230a6ee4d092b1f1d15d2fb  hashgard
+2019-08-06 18:56:32,986 - exec_command - INFO - 输入命令： pwd
+2019-08-06 18:56:33,005 - exec_command - INFO - 返回结果：
+/root
+2019-08-06 18:56:33,366 - downloaddir - INFO - gosum 文件 已经从/root/go/bin/ 已经下载到 D:/360/test 
+2019-08-06 18:56:33,586 - downloaddir - INFO - statik 文件 已经从/root/go/bin/ 已经下载到 D:/360/test 
+2019-08-06 18:56:34,198 - downloaddir - INFO - goimports 文件 已经从/root/go/bin/ 已经下载到 D:/360/test 
+2019-08-06 18:56:36,621 - downloaddir - INFO - hashgard 文件 已经从/root/go/bin/ 已经下载到 D:/360/test 
+2019-08-06 18:56:38,714 - downloaddir - INFO - hashgardcli 文件 已经从/root/go/bin/ 已经下载到 D:/360/test 
+2019-08-06 18:56:40,961 - downloaddir - INFO - hashgardlcd 文件 已经从/root/go/bin/ 已经下载到 D:/360/test 
+2019-08-06 18:56:42,880 - downloaddir - INFO - hashgardkeyutil 文件 已经从/root/go/bin/ 已经下载到 D:/360/test 
+2019-08-06 18:56:45,061 - downloaddir - INFO - hashgardreplay 文件 已经从/root/go/bin/ 已经下载到 D:/360/test 
+2019-08-06 18:56:46,395 - downloaddir - INFO - golangci-lint 文件 已经从/root/go/bin/ 已经下载到 D:/360/test 
+2019-08-06 18:56:46,395 - close - INFO - 文件传输服务关闭
+2019-08-06 18:56:46,396 - close - INFO - SSH 命令服务关闭

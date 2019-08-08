@@ -1,0 +1,27 @@
+{
+  "walletpassword":"a11111111",
+  "defaultpath":"/home/wind/",
+  "localpath": "/home/wind/Hashgard/",
+  "testnet": {
+    "jenkins": {
+      "ip": "172.16.6.9",
+      "port": "22"
+    },
+    "dev": {
+      "ip": "172.16.6.11",
+      "port": "22"
+    },
+    "dev2": {
+      "ip": "172.16.6.16",
+      "port": "22"
+    },
+    "sit": {
+      "ip": "172.16.6.12",
+      "port": "22"
+    },
+    "sit2": {
+      "ip": "172.16.6.17",
+      "port": "22"
+    }
+  }
+}
