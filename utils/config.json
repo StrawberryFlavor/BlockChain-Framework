@@ -2,6 +2,13 @@
   "walletpassword":"a11111111",
   "defaultpath":"/home/wind/",
   "localpath": "/home/wind/Hashgard/",
+  "configpath":"/root/.hashgard/config/",
+  "synchronization":{
+    "robot":{
+      "ip": "172.16.6.55",
+      "port": "22"
+    }
+  },
   "testnet": {
     "jenkins": {
       "ip": "172.16.6.9",

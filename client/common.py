@@ -3,6 +3,7 @@ from utils import logger
 import os
 import json
 import subprocess
+import time
 
 log = logger.Logger().getlog()
 config_json = os.path.dirname(os.path.abspath('.')) + '/utils/config.json'
@@ -17,12 +18,14 @@ class ClientCommmon(object):
         try:
             log.info("执行命令：\n%s" % command)
             p = subprocess.Popen(command, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
-            result = p.stdout.read().strip().decode('utf-8')
-            if len(result) > 0:
+            stout = p.stdout.read()
+            if len(stout) > 0:
+                result = stout.strip().decode()
                 log.info("返回结果：\n%s" % result)
                 return result
-            err = p.stderr.read().strip().decode('utf-8')
-            if len(err) > 0:
+            stderr = p.stderr.read()
+            if len(stderr) > 0:
+                err = stderr.strip().decode()
                 log.info("报错信息：\n%s" % err)
                 return err
         except Exception as e:
@@ -66,16 +69,11 @@ class ClientCommmon(object):
         转账
         :return:
         """
-        try:
-            log.info("本地 %s 账户转账 %s 到 %s地址" % (from_account, amount, to_address))
-            send = "echo " + config['walletpassword'] + "|" + cli_local_path + "hashgardcli bank send " + to_address + " " + amount + " --from " + from_account + " -y"
-            result = self.subcommand(send)
-            result_json = json.loads(result)
-            txhash = result_json['txhash']
-            log.info("交易hash为 %s" % txhash)
-            return txhash
-        except Exception as e:
-            log.info(e)
+        log.info("本地 %s 账户转账 %s 到 %s地址" % (from_account, amount, to_address))
+        send = "echo " + config['walletpassword'] + "|" + cli_local_path + "hashgardcli bank send " + to_address + " " + amount + " --from " + from_account + " -y"
+        result = self.subcommand(send)
+        return result
+
 
     def faucet_send(self, address):
         """
@@ -83,16 +81,11 @@ class ClientCommmon(object):
         :param address:
         :return:
         """
-        try:
-            faucet_send = cli_local_path + "hashgardcli faucet send " + address
-            log.info("%s 地址领取水龙头" % address)
-            result = self.subcommand(faucet_send)
-            result_json = json.loads(result)
-            txhash = result_json['txhash']
-            log.info("交易hash为 %s" % txhash)
-            return txhash
-        except Exception as e:
-            log.info(e)
+        faucet_send = cli_local_path + "hashgardcli faucet send " + address
+        log.info("%s 地址领取水龙头" % address)
+        result = self.subcommand(faucet_send)
+        return result
+
 
     def create_validator(self, from_account, amount, moniker):
         """
@@ -131,9 +124,10 @@ class ClientCommmon(object):
         status = result_json['sync_info']['catching_up']
         latest_height = result_json['sync_info']['latest_block_height']
         if status:
-            log.info("当前正在同步，最后的高度为 %s" % latest_height)
+            log.info("当前正在同步，最后的高度为 %s ,请等待同步完成" % latest_height)
             return True
-        log.info("当前已经同步完成，高度为 %s ,请等待同步完成" % latest_height)
+        log.info("当前已经同步完成，高度为 %s " % latest_height)
+        time.sleep(10)
         return False
 
     def delegate(self, validator_address, amount, from_account):
@@ -144,7 +138,8 @@ class ClientCommmon(object):
         :param from_account:
         :return:
         """
-        delegate_cmd = "echo " + config['walletpassword'] + "|" + cli_local_path + "hashgardcli stake delegate " + validator_address + " " + amount + " --from " + from_account + " -y"
+        delegate_cmd = "echo " + config[
+            'walletpassword'] + "|" + cli_local_path + "hashgardcli stake delegate " + validator_address + " " + amount + " --from " + from_account + " -y"
         result = self.subcommand(delegate_cmd)
         result_json = json.loads(result)
         txhash = result_json['txhash']
@@ -159,7 +154,8 @@ class ClientCommmon(object):
         :param from_account:
         :return:
         """
-        unbond_cmd = "echo " + config['walletpassword'] + "|" + cli_local_path + "hashgardcli stake unbond " + validator_address + " " + amount + " --from " + from_account + " -y"
+        unbond_cmd = "echo " + config[
+            'walletpassword'] + "|" + cli_local_path + "hashgardcli stake unbond " + validator_address + " " + amount + " --from " + from_account + " -y"
         result = self.subcommand(unbond_cmd)
         result_json = json.loads(result)
         txhash = result_json['txhash']
@@ -196,7 +192,7 @@ class ClientCommmon(object):
             for item in result_json['value']['coins']:
                 if item['denom'] == coin:
                     amount = item['amount']
-                    log.info("该{address}地址中，存在 {amount}个{coin}".format(address=address,amount=amount,coin=coin))
+                    log.info("该{address}地址中，存在 {amount}个{coin}".format(address=address, amount=amount, coin=coin))
         return result_json
 
     def keys_list(self):
@@ -209,9 +205,29 @@ class ClientCommmon(object):
         result_json = json.loads(result)
         return result_json
 
+    def must_memo(self, true_or_false, from_account):
+        must_memo_cmd = "echo " + config[
+            'walletpassword'] + "|" + cli_local_path + "hashgardcli keys flag-required memo " + true_or_false + " --from " + from_account + " -y"
+        result = self.subcommand(must_memo_cmd)
+        result_json = json.loads(result)
+        txhash = result_json['txhash']
+        log.info("设置成功，交易hash为 %s" % txhash)
+        for item in result_json['tags']:
+            if item['key'] == "sender":
+                sender = item['value']
+                log.info("%s 地址对其转账时，必须加入备注" % sender)
+
+    def remove_keys(self):
+        rm_rf = "rm -rf " + config['defaultpath'] + '.hashgardcli/keys/' + "\n"
+        log.info('清空本地所有账户')
+        os.system(rm_rf)
+
+
+
 if __name__ == "__main__":
     common = ClientCommmon()
     if not common.network_status():
+        common.remove_keys()
         (address, pubkey) = common.add_account("03")
         common.faucet_send(address)
         common.transfer(from_account="03", to_address="gard1prflhd5h66l498vdyy95hyh898r0tjxvv6vc60", amount="10gard")

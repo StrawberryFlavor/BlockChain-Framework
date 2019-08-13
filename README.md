@@ -1,2 +1,1 @@
-# BlockChain-Framework
-Automated testing framework for the hanshgard blockchain.
+hashgard 自动化测试框架

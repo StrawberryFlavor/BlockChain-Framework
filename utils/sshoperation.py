@@ -99,11 +99,11 @@ class SSHConnection(object):
             log.info("输入命令： %s" % command)
             data = stdout.read()
             if len(data) > 0:
-                log.info("返回结果：\n%s" % data.strip().decode())  # 打印正确结果
+                log.info("返回：\n%s" % data.strip().decode())  # 打印正确结果
                 return data.strip().decode()
             err = stderr.read()
             if len(err) > 0:
-                log.info("报错信息：\n%s" % err.strip().decode())  # 输出错误结果
+                log.info("返回：\n%s" % err.strip().decode())  # 输出错误结果
                 return err.strip().decode()
         except Exception as e:
             log.info(e)

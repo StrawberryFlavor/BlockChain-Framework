@@ -1,0 +1,23 @@
+{
+  "chain-id":"test",
+  "hgdev":{
+    "pubkey":"gardvalconspub1zcjduepqdzpkyznmt50fq9hdde4ldnez4fmv0phvzvl77s7tpya777rjlryqv5r5g9",
+    "node-id":"a5e2cc2273c54a7271ed38c7c7933048cbe91a03",
+    "ip": "172.16.6.11"
+  },
+  "dev2":{
+    "pubkey":"gardvalconspub1zcjduepq72xrv3ydnvmgvcdyx62xfv3zxnnt4ufw06lln63vx64mgxczk8jspjs7sv",
+    "node-id":"936fe27bb6f7dbdea07b1cbf0a2505aba0c78501",
+    "ip": "172.16.6.16"
+  },
+  "hgsit":{
+    "pubkey":"gardvalconspub1zcjduepqk28nhtzgpl7ynecuw8a7hcj0fjqus2gazv4e9832nyykeaqfpq0qdfmdtu",
+    "node-id":"927877c16ec27f8d9e3612195cdc89d5d9c8c663"
+    "ip": "172.16.6.12"
+  },
+  "sit2":{
+    "pubkey":"gardvalconspub1zcjduepqtfeeknr2h23kx092tuy39gv8jlwsamnzpcrufjq3kghdzx64csyqpyunh3",
+    "node-id":"7c3ab7f6f3b420d0beff72956d0b2ade856aa93f"
+    "ip": "172.16.6.17"
+  }
+}

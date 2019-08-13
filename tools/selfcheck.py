@@ -28,12 +28,12 @@ class SelfCheck(object):
 
     def stop_node(self, node_name="local"):
         # 停止单个节点
-        log.info("停止节点 %s" % node_name)
         if node_name != "local":
-            log.info("启动本地节点")
+            log.info("停止节点 %s" % node_name)
             ssh = self.cmd(host=config[self.net][node_name]['ip'], port=config[self.net][node_name]['port'],
                            username="root")
             ssh.exec_command("pkill hashgard")
+        log.info("停止本地节点")
         os.system("pkill hashgard" + "\n")
 
     def stop_nodes(self):
@@ -45,15 +45,16 @@ class SelfCheck(object):
 
     def start_node(self, node_name="local"):
         # 开始单个节点
-        log.info("启动节点 %s" % node_name)
         if node_name != "local":
-            log.info("启动本地节点")
+            log.info("启动节点 %s" % node_name)
             ssh = self.cmd(host=config[self.net][node_name]['ip'], port=config[self.net][node_name]['port'],
                            username="root")
             ssh.exec_command("hashgard start >/root/hashgard/hashgard.log &")
         else:
+            log.info("启动本地节点")
             start_cmd = config['localpath'] + "hashgard start > /home/wind/Hashgard_Log/hashgard.log &" + "\n"
             os.system(start_cmd)
+        time.sleep(5)
 
     def start_nodes(self):
         # 开始所有节点
@@ -61,6 +62,7 @@ class SelfCheck(object):
             log.info("启动节点 %s" % node)
             ssh = self.cmd(host=config[self.net][node]['ip'], port=config[self.net][node]['port'], username="root")
             ssh.exec_command("hashgard start >/root/hashgard/hashgard.log &")
+        time.sleep(5)
 
     def start_node_lcd(self, net, node_name):
         # 开始 lcd 服务
@@ -128,8 +130,14 @@ class SelfCheck(object):
             ssh = self.cmd(host=config[self.net][node]['ip'], port=config[self.net][node]['port'], username="root")
             ssh.putdir(localpath=config['localpath'], remotepath='/usr/local/bin/')
 
-    def init_local_hashgard(self, chainid, monkier):
-        log.info("部署同步环境")
+    def init_local_sif_hashgard(self, chainid, monkier):
+        """
+        部署本地sif网络
+        :param chainid:
+        :param monkier:
+        :return:
+        """
+        log.info("部署本地sif网络")
         kill = "pkill hashgard" + "\n"
         rm = "rm -rf " + config['defaultpath'] + ".hashgard" + "\n"
         init = config['localpath'] + "hashgard init --chain-id {net} --moniker {monkier}".format(net=chainid, monkier=monkier) + "\n"
@@ -150,11 +158,101 @@ class SelfCheck(object):
         cli_config = cli_config_chainid + cli_config_trust + cli_config_json + cli_config_indent
         log.info(cli_config)
         os.system(cli_config)
+        self.start_node()
+
+    def init_local_testnet(self, chainid="test", monkier="wind"):
+        log.info("部署本地测试网络")
+        kill = "pkill hashgard" + "\n"
+        rm = "rm -rf " + config['defaultpath'] + ".hashgard" + "\n"
+        init = config['localpath'] + "hashgard init --chain-id {net} --moniker {monkier}".format(net=chainid,monkier=monkier) + "\n"
+
+        cli_config_chainid = config['localpath'] + "hashgardcli config chain-id %s" % chainid + "\n"
+        cli_config_trust = config['localpath'] + "hashgardcli config trust-node true" + "\n"
+        cli_config_json = config['localpath'] + "hashgardcli config output json" + "\n"
+        cli_config_indent = config['localpath'] + "hashgardcli config indent true" + "\n"
+
+        init_cmd = kill + rm + init
+        log.info(init_cmd)
+        os.system(init_cmd)
+
+        time.sleep(3)
+        ssh = self.cmd(host=config[self.net]['dev']['ip'], port=config[self.net]['dev']['port'], username="root")
+        ssh.downloadfile(localpath=config['defaultpath'] + ".hashgard/config/config.toml", remotepath=config['configpath'] + "config.toml")
+        ssh.downloadfile(localpath=config['defaultpath'] + ".hashgard/config/genesis.json", remotepath=config['configpath'] + "genesis.json")
+
+        time.sleep(3)
+        cli_config = cli_config_chainid + cli_config_trust + cli_config_json + cli_config_indent
+        log.info(cli_config)
+        os.system(cli_config)
+        self.start_node()
+        time.sleep(10)
+
+    def rest_environment(self):
+        """
+        重置测试环境
+        :return:
+        """
+        log.info("重置测试环境")
+        # 先清空同步节点，避免数据以同步节点为准
+        ssh = self.cmd(host=config['synchronization']['robot']['ip'], port=config['synchronization']['robot']['port'], username="root")
+        ssh.exec_command("pkill hashgard")
+        ssh.exec_command("hashgard unsafe-reset-all")
+
+        self.stop_nodes()
+        hashgard_unsafe_rest_all = "hashgard unsafe-reset-all"
+        for node in config[self.net]:
+            ssh = self.cmd(host=config[self.net][node]['ip'], port=config[self.net][node]['port'], username="root")
+            ssh.exec_command(hashgard_unsafe_rest_all)
+            log.info("对 %s 节点执行重置" % config[self.net][node])
+
+        time.sleep(3)
+        # 启动所有节点
+        self.start_nodes()
+        ssh = self.cmd(host=config[self.net]['dev']['ip'], port=config[self.net]['dev']['port'], username="root")
+        result = ssh.exec_command("hashgardcli status")
+        result_json = json.loads(result)
+        network = result_json['node_info']['network']
+        latest_height = result_json['sync_info']['latest_block_height']
+        time.sleep(10)
+        return network, latest_height
+
+    def start_until_synchronization_node(self):
+        log.info("启动节点同步数据")
+        kill_cmd = "pkill hashgard"
+        hashgard_unsafe_rest_all = "hashgard unsafe-reset-all"
+
+        ssh = self.cmd(host=config['synchronization']['robot']['ip'], port=config['synchronization']['robot']['port'], username="root")
+        # 杀死程序
+        ssh.exec_command(kill_cmd)
+        # 替换版本
+        ssh.putfile(localpath=config['localpath'] + "hashgard", remotepath="/usr/local/bin/hashgard")
+        ssh.putfile(localpath=config['localpath'] + "hashgardcli", remotepath="/usr/local/bin/hashgardcli")
+
+        ssh.exec_command(hashgard_unsafe_rest_all)
+
+        time.sleep(3)
+        # 重置环境
+        ssh.exec_command("hashgard start > /root/hashgard/hashgard.log &")
+
+        time.sleep(5)
+
+        status_cmd = "hashgardcli status"
+
+        while json.loads(ssh.exec_command(status_cmd))['sync_info']['catching_up']:
+            log.info("当前正在同步")
+            time.sleep(10)
+
+        log.info("当前已经同步完成")
+        if ssh.exec_command('ps -ef|grep hashgard  |grep -v "grep"|wc -l') == 0:
+            return False
+
+        return True
 
 
 if __name__ == "__main__":
     check = SelfCheck(netname="testnet")
-    # check.stop_node()
-    # check.check_local()
-    check.init_local_hashgard("sif-7000", "wind")
-    check.start_node()
+    # network, latest_height = check.rest_environment()
+    # check.init_local_testnet(chainid=network,monkier='wind')
+    check.start_until_synchronization_node()
+
+
