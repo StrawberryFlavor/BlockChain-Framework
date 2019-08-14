@@ -45,6 +45,7 @@ class ClientCommmon(object):
             address = result_json['address']
             pubkey = result_json['pubkey']
             log.info("创建完成，地址为 %s" % address)
+            self.wait_network_height()
             return address, pubkey
         except Exception as e:
             log.info(e)
@@ -61,6 +62,7 @@ class ClientCommmon(object):
             result = self.subcommand(keys_delete)
             if "Key deleted forever" in result:
                 log.info("删除成功")
+            self.wait_network_height()
         except Exception as e:
             log.info(e)
 
@@ -72,8 +74,8 @@ class ClientCommmon(object):
         log.info("本地 %s 账户转账 %s 到 %s地址" % (from_account, amount, to_address))
         send = "echo " + config['walletpassword'] + "|" + cli_local_path + "hashgardcli bank send " + to_address + " " + amount + " --from " + from_account + " -y"
         result = self.subcommand(send)
+        self.wait_network_height()
         return result
-
 
     def faucet_send(self, address):
         """
@@ -84,10 +86,10 @@ class ClientCommmon(object):
         faucet_send = cli_local_path + "hashgardcli faucet send " + address
         log.info("%s 地址领取水龙头" % address)
         result = self.subcommand(faucet_send)
+        self.wait_network_height()
         return result
 
-
-    def create_validator(self, from_account, amount, moniker):
+    def create_validator(self, from_account, amount, moniker, normal="normal"):
         """
         创建验证人
         :param from_account:
@@ -99,19 +101,48 @@ class ClientCommmon(object):
             show_tendermint_validator = cli_local_path + "hashgard tendermint show-validator"
             validator_pubkey = self.subcommand(show_tendermint_validator).strip()
             log.info("节点的pubkey为 %s" % validator_pubkey)
-            create_validator_cmd = "echo " + config[
-                'walletpassword'] + "|" + cli_local_path + "hashgardcli stake create-validator " + " --pubkey " + validator_pubkey + " --commission-max-change-rate=0.01  --commission-rate=0.1  --commission-max-rate=0.2 --amount=" + amount + " --moniker=" + moniker + " --min-self-delegation=10  --fees=2gard " + "--from " + from_account + " -y"
+            create_validator_cmd = "echo " + config['walletpassword'] + "|" + cli_local_path + "hashgardcli stake create-validator " + " --pubkey " + validator_pubkey + " --commission-max-change-rate=0.01  --commission-rate=0.1  --commission-max-rate=0.2 --amount=" + amount + " --moniker=" + moniker + " --min-self-delegation=10  --fees=2gard " + "--from " + from_account + " -y"
             result = self.subcommand(create_validator_cmd)
-            result_json = json.loads(result)
-            txhash = result_json['txhash']
-            log.info("交易hash为 %s" % txhash)
-            for items in result_json['tags']:
-                if items['key'] == "destination-validator":
-                    validator_address = items['value']
-                    log.info("创建验证人地址为 %s" % validator_address)
-                    return validator_address, txhash
+            if normal == "normal":
+                result_json = json.loads(result)
+                txhash = result_json['txhash']
+                log.info("交易hash为 %s" % txhash)
+                for items in result_json['tags']:
+                    if items['key'] == "destination-validator":
+                        validator_address = items['value']
+                        log.info("创建验证人地址为 %s" % validator_address)
+                        self.wait_network_height()
+                        return validator_address, txhash
+            else:
+                return result
+
         except Exception as e:
             log.info(e)
+
+    def wait_network_status(self):
+        # 等待区块同步完成
+        result_json = self.network_status()
+        status = result_json['sync_info']['catching_up']
+        # 如果为真
+        while str(status) == "true":
+            time.sleep(10)
+            if str(self.network_status()['sync_info']['catching_up']) == "false":
+                break
+            log.info("当前正在同步，请等待区块同步完成")
+        log.info("当前已经同步完成")
+
+    def wait_network_height(self, num=1):
+        result_json = self.network_status()
+        latest_height = result_json['sync_info']['latest_block_height']
+        wait_height = int(latest_height) + int(num)
+        log.info("需要等待高度到 %s" % str(wait_height))
+        while True:
+            now_height = self.network_status()['sync_info']['latest_block_height']
+            if int(now_height) >= int(wait_height):
+                log.info("当前已经等待到 %s 高度" % str(wait_height))
+                break
+            log.info("当前高度 %s 还未达到指定高度 %s，请等待" % (str(now_height), str(wait_height)))
+            time.sleep(5)
 
     def network_status(self):
         """
@@ -121,14 +152,7 @@ class ClientCommmon(object):
         cli_status = cli_local_path + "hashgardcli status" + "\n"
         result = self.subcommand(cli_status)
         result_json = json.loads(result)
-        status = result_json['sync_info']['catching_up']
-        latest_height = result_json['sync_info']['latest_block_height']
-        if status:
-            log.info("当前正在同步，最后的高度为 %s ,请等待同步完成" % latest_height)
-            return True
-        log.info("当前已经同步完成，高度为 %s " % latest_height)
-        time.sleep(10)
-        return False
+        return result_json
 
     def delegate(self, validator_address, amount, from_account):
         """
@@ -144,6 +168,7 @@ class ClientCommmon(object):
         result_json = json.loads(result)
         txhash = result_json['txhash']
         log.info("抵押到验证人地址 %s 成功，交易hash为 %s" % (validator_address, txhash))
+        self.wait_network_height()
         return txhash
 
     def unbond(self, validator_address, amount, from_account):
@@ -160,6 +185,7 @@ class ClientCommmon(object):
         result_json = json.loads(result)
         txhash = result_json['txhash']
         log.info("对验证人地址 %s 解绑，交易hash为 %s" % (validator_address, txhash))
+        self.wait_network_height()
         return txhash
 
     def redelegate(self, src_validator_address, dst_validator_address, amount, from_account):
@@ -176,6 +202,7 @@ class ClientCommmon(object):
         result_json = json.loads(result)
         txhash = result_json['txhash']
         log.info("从验证人 %s 转移 %s 委托至验证人地址 %s 解绑，交易hash为 %s" % (src_validator_address, amount, dst_validator_address, txhash))
+        self.wait_network_height()
         return txhash
 
     def get_balances(self, address, coin=None):
@@ -205,17 +232,22 @@ class ClientCommmon(object):
         result_json = json.loads(result)
         return result_json
 
-    def must_memo(self, true_or_false, from_account):
-        must_memo_cmd = "echo " + config[
-            'walletpassword'] + "|" + cli_local_path + "hashgardcli keys flag-required memo " + true_or_false + " --from " + from_account + " -y"
+    def must_memo(self, true_or_false, from_account, normal="normal"):
+        must_memo_cmd = "echo " + config['walletpassword'] + "|" + cli_local_path + "hashgardcli keys flag-required memo " + true_or_false + " --from " + from_account + " -y"
         result = self.subcommand(must_memo_cmd)
-        result_json = json.loads(result)
-        txhash = result_json['txhash']
-        log.info("设置成功，交易hash为 %s" % txhash)
-        for item in result_json['tags']:
-            if item['key'] == "sender":
-                sender = item['value']
-                log.info("%s 地址对其转账时，必须加入备注" % sender)
+
+        self.wait_network_height()
+
+        if normal == "normal":
+            result_json = json.loads(result)
+            txhash = result_json['txhash']
+            log.info("设置成功，交易hash为 %s" % txhash)
+            for item in result_json['tags']:
+                if item['key'] == "sender":
+                    sender = item['value']
+                    log.info("%s 地址对其转账时，必须加入备注" % sender)
+            return result
+        return result
 
     def remove_keys(self):
         rm_rf = "rm -rf " + config['defaultpath'] + '.hashgardcli/keys/' + "\n"
@@ -223,12 +255,5 @@ class ClientCommmon(object):
         os.system(rm_rf)
 
 
-
 if __name__ == "__main__":
     common = ClientCommmon()
-    if not common.network_status():
-        common.remove_keys()
-        (address, pubkey) = common.add_account("03")
-        common.faucet_send(address)
-        common.transfer(from_account="03", to_address="gard1prflhd5h66l498vdyy95hyh898r0tjxvv6vc60", amount="10gard")
-        (validator_address, txhash) = common.create_validator("03", "10gard", "wind")

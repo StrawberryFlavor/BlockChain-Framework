@@ -35,6 +35,7 @@ class SelfCheck(object):
             ssh.exec_command("pkill hashgard")
         log.info("停止本地节点")
         os.system("pkill hashgard" + "\n")
+        time.sleep(3)
 
     def stop_nodes(self):
         # 停止所有节点
@@ -42,6 +43,11 @@ class SelfCheck(object):
             log.info("停止节点 %s" % node)
             ssh = self.cmd(host=config[self.net][node]['ip'], port=config[self.net][node]['port'], username="root")
             ssh.exec_command("pkill hashgard")
+            result = ssh.exec_command("hashgardcli status")
+            if "connection refused".strip() in result:
+                log.info("成功停止")
+            else:
+                ssh.exec_command("pkill hashgard")
 
     def start_node(self, node_name="local"):
         # 开始单个节点
@@ -54,7 +60,7 @@ class SelfCheck(object):
             log.info("启动本地节点")
             start_cmd = config['localpath'] + "hashgard start > /home/wind/Hashgard_Log/hashgard.log &" + "\n"
             os.system(start_cmd)
-        time.sleep(5)
+        time.sleep(3)
 
     def start_nodes(self):
         # 开始所有节点
@@ -62,7 +68,7 @@ class SelfCheck(object):
             log.info("启动节点 %s" % node)
             ssh = self.cmd(host=config[self.net][node]['ip'], port=config[self.net][node]['port'], username="root")
             ssh.exec_command("hashgard start >/root/hashgard/hashgard.log &")
-        time.sleep(5)
+            time.sleep(2)
 
     def start_node_lcd(self, net, node_name):
         # 开始 lcd 服务
@@ -163,15 +169,16 @@ class SelfCheck(object):
     def init_local_testnet(self, chainid="test", monkier="wind"):
         log.info("部署本地测试网络")
         kill = "pkill hashgard" + "\n"
+        unsafe_reset_all = "hashgard unsafe-reset-all" + "\n"
         rm = "rm -rf " + config['defaultpath'] + ".hashgard" + "\n"
-        init = config['localpath'] + "hashgard init --chain-id {net} --moniker {monkier}".format(net=chainid,monkier=monkier) + "\n"
+        init = config['localpath'] + "hashgard init --chain-id {net} --moniker {monkier}".format(net=chainid, monkier=monkier) + "\n"
 
         cli_config_chainid = config['localpath'] + "hashgardcli config chain-id %s" % chainid + "\n"
         cli_config_trust = config['localpath'] + "hashgardcli config trust-node true" + "\n"
         cli_config_json = config['localpath'] + "hashgardcli config output json" + "\n"
         cli_config_indent = config['localpath'] + "hashgardcli config indent true" + "\n"
 
-        init_cmd = kill + rm + init
+        init_cmd = kill + unsafe_reset_all + rm + init
         log.info(init_cmd)
         os.system(init_cmd)
 
@@ -194,20 +201,29 @@ class SelfCheck(object):
         """
         log.info("重置测试环境")
         # 先清空同步节点，避免数据以同步节点为准
-        ssh = self.cmd(host=config['synchronization']['robot']['ip'], port=config['synchronization']['robot']['port'], username="root")
+        ssh = self.cmd(host=config['synchronization']['robot']['ip'], port=config['synchronization']['robot']['port'], username='root')
+
         ssh.exec_command("pkill hashgard")
+        time.sleep(2)
         ssh.exec_command("hashgard unsafe-reset-all")
 
+        kill_cmd = "pkill hashgard" + "\n"
+        unsafe_cmd = config['localpath'] + "hashgard unsafe-reset-all" + "\n"
+        log.info(kill_cmd + unsafe_cmd)
+        os.system(kill_cmd + unsafe_cmd)
+
         self.stop_nodes()
+
         hashgard_unsafe_rest_all = "hashgard unsafe-reset-all"
         for node in config[self.net]:
             ssh = self.cmd(host=config[self.net][node]['ip'], port=config[self.net][node]['port'], username="root")
             ssh.exec_command(hashgard_unsafe_rest_all)
             log.info("对 %s 节点执行重置" % config[self.net][node])
 
-        time.sleep(3)
+        time.sleep(5)
         # 启动所有节点
         self.start_nodes()
+
         ssh = self.cmd(host=config[self.net]['dev']['ip'], port=config[self.net]['dev']['port'], username="root")
         result = ssh.exec_command("hashgardcli status")
         result_json = json.loads(result)
@@ -238,21 +254,34 @@ class SelfCheck(object):
 
         status_cmd = "hashgardcli status"
 
-        while json.loads(ssh.exec_command(status_cmd))['sync_info']['catching_up']:
-            log.info("当前正在同步")
-            time.sleep(10)
-
+        while True:
+            if str(json.loads(ssh.exec_command(status_cmd))['sync_info']['catching_up']) == "False":
+                break
+            else:
+                log.info("当前还未同步完成，请等待")
+                time.sleep(10)
         log.info("当前已经同步完成")
-        if ssh.exec_command('ps -ef|grep hashgard  |grep -v "grep"|wc -l') == 0:
-            return False
 
-        return True
+        now_height = int(json.loads(ssh.exec_command(status_cmd))['sync_info']['latest_block_height'])
+        time.sleep(10)
+        next_height = now_height + 1
+        if int(json.loads(ssh.exec_command(status_cmd))['sync_info']['latest_block_height']) >= int(next_height):
+            status = ssh.exec_command('ps -ef|grep hashgard  |grep -v "grep"|wc -l')
+            if status == 0:
+                log.info("程序中断")
+                return False
+            else:
+                log.info("程序运行正常")
+                return True
+        else:
+            log.info("超过10秒都未增加高度")
+            return False
 
 
 if __name__ == "__main__":
     check = SelfCheck(netname="testnet")
     # network, latest_height = check.rest_environment()
     # check.init_local_testnet(chainid=network,monkier='wind')
-    check.start_until_synchronization_node()
-
+    status = check.start_until_synchronization_node()
+    print(status)
 
