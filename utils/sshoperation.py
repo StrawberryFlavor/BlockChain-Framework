@@ -19,7 +19,7 @@ class SSHConnection(object):
         self._transport = None
         self._sftp = None
         self._client = None
-        keypath = os.path.dirname(os.path.abspath(".")) + "/tools/sshkey/id_rsa_github"
+        keypath = os.path.dirname(os.path.abspath(".")) + "/utils/sshkey/id_rsa_github"
         self.privatepath = paramiko.RSAKey.from_private_key_file(keypath)
         self._connect()  # 建立连接
 

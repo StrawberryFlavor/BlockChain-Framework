@@ -1,9 +1,0 @@
-2019-08-06 11:43:50,499 - update_dev_version - INFO - 更新dev代码至最新版本并编译
-2019-08-06 11:43:50,531 - _log - INFO - Connected (version 2.0, client OpenSSH_7.4)
-2019-08-06 11:43:50,659 - _log - INFO - Authentication (publickey) successful!
-2019-08-06 11:43:50,767 - _log - INFO - [chan 0] Opened sftp connection (server version 3)
-2019-08-06 11:43:50,767 - _connect - INFO - SSH 连接到服务器：172.16.6.11,端口为：22,用户名为：root
-2019-08-06 11:43:50,786 - exec_command - INFO - 输入命令： cd /root/go/src/github.com/hashgard/hashgard;git pull origin master
-2019-08-06 11:43:52,404 - exec_command - INFO - 返回结果：
-Already up-to-date.
-2019-08-06 11:43:52,404 - update_dev_version - INFO - 当前处于 master 分支，已经是最新版，无需编译
